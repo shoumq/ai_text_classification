@@ -1,5 +1,9 @@
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
+import telebot
+
+TOKEN = '7873240309:AAE2JMHbW4s-1cQ71IN6OyX2Cl3q0xB9h6Q'
+bot = telebot.TeleBot(TOKEN)
 
 class SentimentModel:
     def __init__(self, model_name: str, num_labels: int):
@@ -28,13 +32,17 @@ class SentimentAnalyzer:
         predicted_class = self.model.predict(text)
         return "Положительное" if predicted_class == 1 else "Отрицательное"
 
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Добро пожаловать! Введите текст для распознания")
 
-if __name__ == "__main__":
+@bot.message_handler(func=lambda message: True)
+def echo_all(message):
     model_name = "DeepPavlov/rubert-base-cased"
     sentiment_model = SentimentModel(model_name=model_name, num_labels=2)
+    sentiment_analyzer = SentimentAnalyzer(model=sentiment_model)
+    sentiment = sentiment_analyzer.analyze_sentiment(message.text)
+    bot.reply_to(message, f"{sentiment}")
 
-    with open('data.csv', 'r', encoding='utf-8') as file:
-        for i, line in enumerate(file):
-            sentiment_analyzer = SentimentAnalyzer(model=sentiment_model)
-            sentiment = sentiment_analyzer.analyze_sentiment(line.strip())
-            print(f"Отзыв №{i}: {line.strip()} - {sentiment}")
+if __name__ == "__main__":
+    bot.polling()
